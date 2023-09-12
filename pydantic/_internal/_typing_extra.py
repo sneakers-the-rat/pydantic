@@ -209,13 +209,12 @@ def get_cls_type_hints_lenient(obj: Any, globalns: dict[str, Any] | None = None)
         localns = dict(vars(base))
         if ann is not None and ann is not GetSetDescriptorType:
             for name, value in ann.items():
-
-                if type(value).__name__ == 'FieldInfo' and type(value).__module__ == 'pydantic.fields':
-                    # while we still have the name in scope,
-                    # check if value is FieldInfo without importing. If we have
-                    # used the same name for the field as its type, python evaluates
-                    # the type as the assigned value.
-                    # So, try to replace with value from the outer namespace.
+                if hasattr(obj, name) and value is getattr(obj, name):
+                    # If the value in the annotation is the same as is assigned,
+                    # either as a literal default or a Field() object, then Python
+                    # has substituted the annotation value with the assignment value.
+                    # We attempt to get the symbol with the same name from the enclosing
+                    # parent scope, returning the value unchanged if it's not present
                     value = globalns.get(name, value)
 
                 elif isinstance(value, str) and value in ann.keys():
